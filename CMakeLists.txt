@@ -126,6 +126,11 @@ if (UNIX AND NOT APPLE)
         JUCE_ALSA=1
         JUCE_JACK=1
         JUCE_USE_PIPEWIRE=1)
+    # juce_dsp SIMDNativeOps<int64_t> uses SSE4.1 intrinsics; without this flag
+    # the specialisation is forward-declared only and causes a compile error.
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        target_compile_options(NeuralStage PRIVATE -msse4.1)
+    endif()
 endif()
 
 # --- Source tree ---
@@ -281,6 +286,9 @@ if (UNIX AND NOT APPLE)
         JUCE_ALSA=1
         JUCE_JACK=1
         JUCE_USE_PIPEWIRE=1)
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        target_compile_options(NeuralStagePlugin PRIVATE -msse4.1)
+    endif()
 endif()
 
 target_sources(NeuralStagePlugin PRIVATE
