@@ -48,8 +48,9 @@ void OfflineRenderer::run()
     }
 
     const double sampleRate     = reader->sampleRate;
-    const int    totalSamples   = (int) juce::jmin<juce::int64> (reader->lengthInSamples,
-                                                                 (juce::int64) std::numeric_limits<int>::max());
+    const int    totalSamples   = reader->lengthInSamples > (juce::int64) std::numeric_limits<int>::max()
+                                    ? std::numeric_limits<int>::max()
+                                    : static_cast<int> (reader->lengthInSamples);
     const int    blockSize      = 1024;
 
     setStatusMessage ("Stopping live audio device...");
