@@ -1,0 +1,133 @@
+name: Linux Build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  # ============================================================================
+  #  x86_64 — standard desktop / server Linux
+  # ============================================================================
+  build-x86_64:
+    name: Linux x86_64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            cmake ninja-build build-essential pkg-config git \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype6-dev libfontconfig1-dev \
+            libgl1-mesa-dev libgles2-mesa-dev \
+            libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxcomposite-dev libxext-dev \
+            libpipewire-0.3-dev libspa-0.2-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B Builds/Linux \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build Builds/Linux --config Release --parallel $(nproc)
+
+      - name: Locate artifacts
+        id: find
+        run: |
+          EXE=$(find Builds/Linux -maxdepth 4 -type f -name "NeuralStage.v.*" \
+                ! -name "*.so" ! -name "*.vst3" 2>/dev/null | head -1)
+          VST3=$(find Builds/Linux -maxdepth 5 -type d -name "NeuralStage.vst3" 2>/dev/null | head -1)
+          echo "exe=$EXE"
+          echo "vst3=$VST3"
+          echo "exe=$EXE"  >> "$GITHUB_OUTPUT"
+          echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
+
+      - name: Upload standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-x86_64-standalone
+          path: ${{ steps.find.outputs.exe }}
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-x86_64-VST3
+          path: ${{ steps.find.outputs.vst3 }}
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================================
+  #  ARM64 — Raspberry Pi 5 / other aarch64 Linux hardware
+  #  Uses GitHub's native ARM64 runner (ubuntu-24.04-arm).
+  #  No cross-compilation — same build script, native speed.
+  # ============================================================================
+  build-arm64:
+    name: Linux ARM64 (Raspberry Pi 5)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            cmake ninja-build build-essential pkg-config git \
+            libasound2-dev libjack-jackd2-dev \
+            libfreetype6-dev libfontconfig1-dev \
+            libgl1-mesa-dev libgles2-mesa-dev \
+            libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxcomposite-dev libxext-dev \
+            libpipewire-0.3-dev libspa-0.2-dev \
+            libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Configure
+        run: |
+          cmake -S . -B Builds/Linux \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build Builds/Linux --config Release --parallel $(nproc)
+
+      - name: Locate artifacts
+        id: find
+        run: |
+          EXE=$(find Builds/Linux -maxdepth 4 -type f -name "NeuralStage.v.*" \
+                ! -name "*.so" ! -name "*.vst3" 2>/dev/null | head -1)
+          VST3=$(find Builds/Linux -maxdepth 5 -type d -name "NeuralStage.vst3" 2>/dev/null | head -1)
+          echo "exe=$EXE" >> "$GITHUB_OUTPUT"
+          echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
+
+      - name: Upload standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-ARM64-standalone
+          path: ${{ steps.find.outputs.exe }}
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-ARM64-VST3
+          path: ${{ steps.find.outputs.vst3 }}
+          retention-days: 30
+          if-no-files-found: warn
