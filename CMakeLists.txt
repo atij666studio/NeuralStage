@@ -52,6 +52,7 @@ if (EXISTS "${NAM_CORE_DIR}/NAM/dsp.h")
         "${NAM_CORE_DIR}/NAM/wavenet/*.cpp"
     )
     add_library(nam_core STATIC ${NAM_CORE_SOURCES})
+    set_target_properties(nam_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_compile_features(nam_core PUBLIC cxx_std_20)
     target_include_directories(nam_core SYSTEM PUBLIC
         "${NAM_CORE_DIR}"
