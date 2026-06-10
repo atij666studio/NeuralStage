@@ -47,18 +47,50 @@ jobs:
         id: find
         run: |
           EXE=$(find Builds/Linux -maxdepth 4 -type f -name "NeuralStage.v.*" \
-                ! -name "*.so" ! -name "*.vst3" 2>/dev/null | head -1)
+                ! -name "*.so" ! -name "*.clap" 2>/dev/null | head -1)
           VST3=$(find Builds/Linux -maxdepth 5 -type d -name "NeuralStage.vst3" 2>/dev/null | head -1)
           echo "exe=$EXE"
           echo "vst3=$VST3"
           echo "exe=$EXE"  >> "$GITHUB_OUTPUT"
           echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
 
-      - name: Upload standalone
+      - name: Build AppImage
+        run: |
+          EXE="${{ steps.find.outputs.exe }}"
+          echo "Bundling: $EXE"
+
+          # Copy binary with clean name so AppRun can find it
+          cp "$EXE" ./NeuralStage
+
+          # .desktop file
+          {
+            echo '[Desktop Entry]'
+            echo 'Name=NeuralStage'
+            echo 'Exec=NeuralStage'
+            echo 'Icon=NeuralStage'
+            echo 'Type=Application'
+            echo 'Categories=Audio;Music;'
+            echo 'Comment=4-NAM XY morph guitar rig host'
+          } > NeuralStage.desktop
+
+          # Download linuxdeploy (APPIMAGE_EXTRACT_AND_RUN avoids needing FUSE)
+          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage
+
+          APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable ./NeuralStage \
+            --desktop-file NeuralStage.desktop \
+            --icon-file Assets/icon.png \
+            --output appimage
+
+          mv NeuralStage*.AppImage NeuralStage-x86_64.AppImage
+
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: NeuralStage-Linux-x86_64-standalone
-          path: ${{ steps.find.outputs.exe }}
+          name: NeuralStage-Linux-x86_64-AppImage
+          path: NeuralStage-x86_64.AppImage
           retention-days: 30
           if-no-files-found: warn
 
@@ -72,8 +104,6 @@ jobs:
 
   # ============================================================================
   #  ARM64 — Raspberry Pi 5 / other aarch64 Linux hardware
-  #  Uses GitHub's native ARM64 runner (ubuntu-24.04-arm).
-  #  No cross-compilation — same build script, native speed.
   # ============================================================================
   build-arm64:
     name: Linux ARM64 (Raspberry Pi 5)
@@ -111,16 +141,45 @@ jobs:
         id: find
         run: |
           EXE=$(find Builds/Linux -maxdepth 4 -type f -name "NeuralStage.v.*" \
-                ! -name "*.so" ! -name "*.vst3" 2>/dev/null | head -1)
+                ! -name "*.so" ! -name "*.clap" 2>/dev/null | head -1)
           VST3=$(find Builds/Linux -maxdepth 5 -type d -name "NeuralStage.vst3" 2>/dev/null | head -1)
           echo "exe=$EXE" >> "$GITHUB_OUTPUT"
           echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
 
-      - name: Upload standalone
+      - name: Build AppImage
+        run: |
+          EXE="${{ steps.find.outputs.exe }}"
+          echo "Bundling: $EXE"
+
+          cp "$EXE" ./NeuralStage
+
+          {
+            echo '[Desktop Entry]'
+            echo 'Name=NeuralStage'
+            echo 'Exec=NeuralStage'
+            echo 'Icon=NeuralStage'
+            echo 'Type=Application'
+            echo 'Categories=Audio;Music;'
+            echo 'Comment=4-NAM XY morph guitar rig host'
+          } > NeuralStage.desktop
+
+          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage"
+          chmod +x linuxdeploy-aarch64.AppImage
+
+          APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy-aarch64.AppImage \
+            --appdir AppDir \
+            --executable ./NeuralStage \
+            --desktop-file NeuralStage.desktop \
+            --icon-file Assets/icon.png \
+            --output appimage
+
+          mv NeuralStage*.AppImage NeuralStage-aarch64.AppImage
+
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: NeuralStage-Linux-ARM64-standalone
-          path: ${{ steps.find.outputs.exe }}
+          name: NeuralStage-Linux-ARM64-AppImage
+          path: NeuralStage-aarch64.AppImage
           retention-days: 30
           if-no-files-found: warn
 
