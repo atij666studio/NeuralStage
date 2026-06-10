@@ -87,8 +87,7 @@ jobs:
             --desktop-file NeuralStage.desktop \
             --icon-file NeuralStage.png \
             --output appimage
-
-          mv NeuralStage*.AppImage NeuralStage-x86_64.AppImage
+          # linuxdeploy already names the output NeuralStage-x86_64.AppImage
 
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
@@ -180,8 +179,7 @@ jobs:
             --desktop-file NeuralStage.desktop \
             --icon-file NeuralStage.png \
             --output appimage
-
-          mv NeuralStage*.AppImage NeuralStage-aarch64.AppImage
+          # linuxdeploy already names the output NeuralStage-aarch64.AppImage
 
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
