@@ -63,8 +63,8 @@ jobs:
           # Copy binary with clean name so AppRun can find it
           cp "$EXE" ./NeuralStage
 
-          # Resize icon to 512x512 (linuxdeploy rejects 1024x1024)
-          convert Assets/icon.png -resize 512x512 icon-512.png
+          # Resize icon — name MUST match Icon= entry in the .desktop file
+          convert Assets/icon.png -resize 512x512 NeuralStage.png
 
           # .desktop file
           {
@@ -85,7 +85,7 @@ jobs:
             --appdir AppDir \
             --executable ./NeuralStage \
             --desktop-file NeuralStage.desktop \
-            --icon-file icon-512.png \
+            --icon-file NeuralStage.png \
             --output appimage
 
           mv NeuralStage*.AppImage NeuralStage-x86_64.AppImage
@@ -158,8 +158,8 @@ jobs:
 
           cp "$EXE" ./NeuralStage
 
-          # Resize icon to 512x512 (linuxdeploy rejects 1024x1024)
-          convert Assets/icon.png -resize 512x512 icon-512.png
+          # Resize icon — name MUST match Icon= entry in the .desktop file
+          convert Assets/icon.png -resize 512x512 NeuralStage.png
 
           {
             echo '[Desktop Entry]'
@@ -178,7 +178,7 @@ jobs:
             --appdir AppDir \
             --executable ./NeuralStage \
             --desktop-file NeuralStage.desktop \
-            --icon-file icon-512.png \
+            --icon-file NeuralStage.png \
             --output appimage
 
           mv NeuralStage*.AppImage NeuralStage-aarch64.AppImage
