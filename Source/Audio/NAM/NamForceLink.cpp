@@ -53,10 +53,14 @@ void ns_ensureNamContainerRegistered() noexcept
     };
     (void) kForceLinks;
 
-    // ── Step 2: Register directly (LTCG / cross-module belt-and-suspenders) ──
-    // With MSVC LTCG the linker may inline step 1's static-init entirely.
-    // Explicit registration with a has() guard is always correct regardless of
-    // initialization order: whichever path fires first wins; the other is a no-op.
+    // ── Step 2: Register directly (MSVC LTCG only) ──────────────────────────
+    // On MSVC with LTCG the linker may dead-code-strip step 1's static-init.
+    // On GCC/Clang (Linux, macOS) the force-link array above is sufficient and
+    // NAM's own file-scope ConfigParserHelper statics handle registration.
+    // Do NOT call registerParser on GCC/Clang: the static-init order may have
+    // NAMRegistrationGuard run before container.cpp's own static init, causing
+    // a double-registration throw from ConfigParserHelper's constructor.
+#ifdef _MSC_VER
     auto& reg = nam::ConfigParserRegistry::instance();
 
     auto tryReg = [&] (const char* name, nam::ConfigParserFunction fn) noexcept
@@ -78,5 +82,6 @@ void ns_ensureNamContainerRegistered() noexcept
                                   { return nam::linear::create_config (c, sr); });
     tryReg ("SlimmableContainer", [] (const nlohmann::json& c, double sr) -> std::unique_ptr<nam::ModelConfig>
                                   { return nam::container::create_config (c, sr); });
-#endif
+#endif // _MSC_VER
+#endif // NS_HAVE_NAM_CORE
 }
