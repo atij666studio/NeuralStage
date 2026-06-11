@@ -307,7 +307,12 @@ void App::initialise (const juce::String&)
             nam.setNormalized (v01 >= 0.5f);
         });
 
-    mainWindow = std::make_unique<MainWindow> (getApplicationName() + " - Live Rig");
+    mainWindow = std::make_unique<MainWindow> (
+        juce::String ("NeuralStage v") + getApplicationVersion()
+       #ifdef NS_BUILD_DATE
+        + "  (" + NS_BUILD_DATE + ")"
+       #endif
+        + "  —  Live Rig");
 
     // (Splash was already created at the top of initialise() for zero-delay
     // appearance; nothing to do here.)

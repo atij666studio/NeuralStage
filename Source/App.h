@@ -34,7 +34,7 @@ public:
     ~App() override;
 
     const juce::String getApplicationName() override    { return "NeuralStage"; }
-    const juce::String getApplicationVersion() override { return "0.2.0"; }
+    const juce::String getApplicationVersion() override { return "0.2.1"; }
     bool moreThanOneInstanceAllowed() override           { return true; }
 
     void initialise (const juce::String&) override;
@@ -44,7 +44,7 @@ public:
     ~App();
 
     const juce::String getApplicationName()    const noexcept { return "NeuralStage"; }
-    const juce::String getApplicationVersion() const noexcept { return "0.2.0"; }
+    const juce::String getApplicationVersion() const noexcept { return "0.2.1"; }
 
     /** Called by NeuralStageProcessor constructor. Sets up state,
      *  managers, MIDI, file restore — everything except audio device

@@ -15,6 +15,8 @@ project(NeuralStage VERSION 0.2.1 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+string(TIMESTAMP NS_BUILD_DATE "%Y-%m-%d" UTC)
+
 # --- Windows: ASIO SDK (shared from AtiNAMatiC-Tone, mirrors AtiNAMatiC-Random setup) ---
 if (MSVC)
     set(JUCE_ASIOSDK_PATH "G:/MY PLUGINS/AtiNAMatiC Series/AtiNAMatiC-Tone/juce-vst3-bridge/ASIOSDK")
@@ -100,6 +102,7 @@ target_compile_definitions(NeuralStage PRIVATE
     JUCE_PLUGINHOST_AU=1
     JUCE_PLUGINHOST_LV2=1
     JUCE_MODAL_LOOPS_PERMITTED=1
+    NS_BUILD_DATE="${NS_BUILD_DATE}"
 )
 
 # --- Windows audio backends (ASIO + WASAPI + DirectSound) ---
@@ -263,6 +266,7 @@ target_compile_definitions(NeuralStagePlugin PRIVATE
     JUCE_PLUGINHOST_AU=1
     JUCE_PLUGINHOST_LV2=1
     JUCE_MODAL_LOOPS_PERMITTED=1
+    NS_BUILD_DATE="${NS_BUILD_DATE}"
     # NeuralStage has never had a VST2 release — suppress the JUCE 8.0.6+ parameter-ID
     # mismatch warning that fires when JUCE_VST3_CAN_REPLACE_VST2 is left at its default.
     JUCE_IGNORE_VST3_MISMATCHED_PARAMETER_ID_WARNING=1
