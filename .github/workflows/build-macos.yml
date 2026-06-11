@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build-macos:
-    name: macOS (Apple Silicon)
+    name: macOS (Universal — arm64 + x86_64)
     runs-on: macos-latest
 
     steps:
@@ -34,7 +34,7 @@ jobs:
           cmake -S . -B Builds/Mac \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=arm64
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
 
       - name: Build
         run: cmake --build Builds/Mac --config Release --parallel $(sysctl -n hw.logicalcpu)
