@@ -78,6 +78,12 @@ if (EXISTS "${NAM_CORE_DIR}/NAM/dsp.h")
     if (APPLE)
         target_compile_options(nam_core PUBLIC -stdlib=libc++)
     endif()
+    if (UNIX AND NOT APPLE)
+        # AudioDSPTools/ResamplingContainer.h has a using-alias that shadows a
+        # class name — valid in GCC 13 but a hard error in GCC 12. -fpermissive
+        # downgrades it to a warning so older toolchains (e.g. Pi builds) compile.
+        target_compile_options(nam_core PRIVATE -fpermissive)
+    endif()
     set(NS_HAVE_NAM_CORE TRUE)
 else()
     message(STATUS "NAM core not vendored — building NAMProcessor as passthrough.")
