@@ -7,6 +7,10 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-macos:
     name: macOS (Apple Silicon)
@@ -29,7 +33,8 @@ jobs:
         run: |
           cmake -S . -B Builds/Mac \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
 
       - name: Build
         run: cmake --build Builds/Mac --config Release --parallel $(sysctl -n hw.logicalcpu)
@@ -37,13 +42,27 @@ jobs:
       - name: Locate artifacts
         id: find
         run: |
-          APP=$(find Builds/Mac -maxdepth 5 -name "NeuralStage.app" | head -1)
-          VST3=$(find Builds/Mac -maxdepth 6 -name "NeuralStage.vst3" | head -1)
-          CLAP=$(find Builds/Mac -maxdepth 6 -name "*.clap" | head -1)
+          echo "=== Searching for build outputs ==="
+          find Builds/Mac -name "*.app" -type d 2>/dev/null
+          find Builds/Mac -name "*.vst3" -type d 2>/dev/null
+          find Builds/Mac -name "*.clap" 2>/dev/null
+
+          APP=$(find Builds/Mac -name "*.app" -type d 2>/dev/null | head -1)
+          VST3=$(find Builds/Mac -name "*.vst3" -type d 2>/dev/null | head -1)
+          CLAP=$(find Builds/Mac -name "*.clap" 2>/dev/null | head -1)
+
+          echo "app=$APP"
+          echo "vst3=$VST3"
+          echo "clap=$CLAP"
           echo "app=$APP"   >> "$GITHUB_OUTPUT"
           echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
           echo "clap=$CLAP" >> "$GITHUB_OUTPUT"
-          # ditto preserves .app bundle structure (symlinks, permissions, resource forks)
+
+          if [ -z "$APP" ]; then
+            echo "ERROR: No .app bundle found — build may have failed"
+            exit 1
+          fi
+
           ditto -c -k --sequesterRsrc --keepParent \
             "$APP" "NeuralStage-${{ steps.date.outputs.date }}-mac.zip"
 

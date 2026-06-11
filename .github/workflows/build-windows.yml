@@ -7,10 +7,14 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     name: Windows x64
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout (with submodules)
@@ -36,8 +40,11 @@ jobs:
           VER=$(grep "^project" CMakeLists.txt | grep -oP '(?<=VERSION )[0-9.]+')
           EXE="Builds/NeuralStage_artefacts/Release/NeuralStage.v.${VER}.exe"
           VST3="Builds/NeuralStagePlugin_artefacts/Release/VST3/NeuralStage.vst3"
-          CLAP=$(find Builds/NeuralStagePlugin_artefacts/Release/CLAP -name "*.clap" | head -1)
-          echo "exe=$EXE" >> "$GITHUB_OUTPUT"
+          CLAP=$(find Builds/NeuralStagePlugin_artefacts/Release/CLAP -name "*.clap" 2>/dev/null | head -1)
+          echo "exe=$EXE"
+          echo "vst3=$VST3"
+          echo "clap=$CLAP"
+          echo "exe=$EXE"   >> "$GITHUB_OUTPUT"
           echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
           echo "clap=$CLAP" >> "$GITHUB_OUTPUT"
 
