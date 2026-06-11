@@ -1,0 +1,72 @@
+name: macOS Build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: macOS (Apple Silicon)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set build date
+        id: date
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: brew install ninja
+
+      - name: Configure
+        run: |
+          cmake -S . -B Builds/Mac \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build Builds/Mac --config Release --parallel $(sysctl -n hw.logicalcpu)
+
+      - name: Locate artifacts
+        id: find
+        run: |
+          APP=$(find Builds/Mac -maxdepth 5 -name "NeuralStage.app" | head -1)
+          VST3=$(find Builds/Mac -maxdepth 6 -name "NeuralStage.vst3" | head -1)
+          CLAP=$(find Builds/Mac -maxdepth 6 -name "*.clap" | head -1)
+          echo "app=$APP"   >> "$GITHUB_OUTPUT"
+          echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
+          echo "clap=$CLAP" >> "$GITHUB_OUTPUT"
+          # ditto preserves .app bundle structure (symlinks, permissions, resource forks)
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$APP" "NeuralStage-${{ steps.date.outputs.date }}-mac.zip"
+
+      - name: Upload App
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-macOS-App-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: NeuralStage-${{ steps.date.outputs.date }}-mac.zip
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-macOS-VST3-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: ${{ steps.find.outputs.vst3 }}
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload CLAP
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-macOS-CLAP-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: ${{ steps.find.outputs.clap }}
+          retention-days: 30
+          if-no-files-found: warn

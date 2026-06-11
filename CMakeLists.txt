@@ -17,9 +17,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 string(TIMESTAMP NS_BUILD_DATE "%Y-%m-%d" UTC)
 
-# --- Windows: ASIO SDK (shared from AtiNAMatiC-Tone, mirrors AtiNAMatiC-Random setup) ---
+# --- Windows: ASIO SDK (local path — gracefully skipped on CI if not present) ---
 if (MSVC)
-    set(JUCE_ASIOSDK_PATH "G:/MY PLUGINS/AtiNAMatiC Series/AtiNAMatiC-Tone/juce-vst3-bridge/ASIOSDK")
+    set(_ns_asio_sdk "G:/MY PLUGINS/AtiNAMatiC Series/AtiNAMatiC-Tone/juce-vst3-bridge/ASIOSDK")
+    if (EXISTS "${_ns_asio_sdk}/common/asio.h")
+        set(JUCE_ASIOSDK_PATH "${_ns_asio_sdk}")
+        set(NS_HAVE_ASIO TRUE)
+    else()
+        message(STATUS "ASIO SDK not found — building without ASIO (WASAPI/DirectSound only)")
+        set(NS_HAVE_ASIO FALSE)
+    endif()
 endif()
 
 # --- Pull JUCE via FetchContent if not vendored ---
@@ -107,15 +114,17 @@ target_compile_definitions(NeuralStage PRIVATE
 
 # --- Windows audio backends (ASIO + WASAPI + DirectSound) ---
 if (MSVC)
+    if (NS_HAVE_ASIO)
+        target_compile_definitions(NeuralStage PRIVATE JUCE_ASIO=1)
+        target_include_directories(NeuralStage PRIVATE
+            "${JUCE_ASIOSDK_PATH}/common"
+            "${JUCE_ASIOSDK_PATH}/host"
+            "${JUCE_ASIOSDK_PATH}/host/pc")
+    endif()
     target_compile_definitions(NeuralStage PRIVATE
-        JUCE_ASIO=1
         JUCE_WASAPI=1
         JUCE_WASAPI_EXCLUSIVE=1
         JUCE_DIRECTSOUND=1)
-    target_include_directories(NeuralStage PRIVATE
-        "${JUCE_ASIOSDK_PATH}/common"
-        "${JUCE_ASIOSDK_PATH}/host"
-        "${JUCE_ASIOSDK_PATH}/host/pc")
     # Force MSVC to read source files as UTF-8 (and emit UTF-8 execution
     # strings). Without this flag, any string literal containing non-ASCII
     # characters -- em-dashes, smart quotes, etc. -- gets interpreted under
@@ -273,15 +282,17 @@ target_compile_definitions(NeuralStagePlugin PRIVATE
 )
 
 if (MSVC)
+    if (NS_HAVE_ASIO)
+        target_compile_definitions(NeuralStagePlugin PRIVATE JUCE_ASIO=1)
+        target_include_directories(NeuralStagePlugin PRIVATE
+            "${JUCE_ASIOSDK_PATH}/common"
+            "${JUCE_ASIOSDK_PATH}/host"
+            "${JUCE_ASIOSDK_PATH}/host/pc")
+    endif()
     target_compile_definitions(NeuralStagePlugin PRIVATE
-        JUCE_ASIO=1
         JUCE_WASAPI=1
         JUCE_WASAPI_EXCLUSIVE=1
         JUCE_DIRECTSOUND=1)
-    target_include_directories(NeuralStagePlugin PRIVATE
-        "${JUCE_ASIOSDK_PATH}/common"
-        "${JUCE_ASIOSDK_PATH}/host"
-        "${JUCE_ASIOSDK_PATH}/host/pc")
     target_compile_options(NeuralStagePlugin PRIVATE /utf-8)
 endif()
 

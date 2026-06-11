@@ -1,0 +1,53 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set build date
+        id: date
+        shell: bash
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Configure
+        run: cmake -S . -B Builds -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build Builds --config Release --parallel
+
+      - name: Locate artifacts
+        id: find
+        shell: bash
+        run: |
+          VER=$(grep "^project" CMakeLists.txt | grep -oP '(?<=VERSION )[0-9.]+')
+          EXE="Builds/NeuralStage_artefacts/Release/NeuralStage.v.${VER}.exe"
+          VST3="Builds/NeuralStagePlugin_artefacts/Release/VST3/NeuralStage.vst3"
+          CLAP=$(find Builds/NeuralStagePlugin_artefacts/Release/CLAP -name "*.clap" | head -1)
+          echo "exe=$EXE" >> "$GITHUB_OUTPUT"
+          echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
+          echo "clap=$CLAP" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Windows-x64-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: |
+            ${{ steps.find.outputs.exe }}
+            ${{ steps.find.outputs.vst3 }}
+            ${{ steps.find.outputs.clap }}
+          retention-days: 30
+          if-no-files-found: warn
