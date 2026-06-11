@@ -17,11 +17,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 string(TIMESTAMP NS_BUILD_DATE "%Y-%m-%d" UTC)
 
-# --- Windows: ASIO SDK (local path — gracefully skipped on CI if not present) ---
+# --- Windows: ASIO SDK — vendored copy takes priority, local path as fallback ---
 if (MSVC)
-    set(_ns_asio_sdk "G:/MY PLUGINS/AtiNAMatiC Series/AtiNAMatiC-Tone/juce-vst3-bridge/ASIOSDK")
-    if (EXISTS "${_ns_asio_sdk}/common/asio.h")
-        set(JUCE_ASIOSDK_PATH "${_ns_asio_sdk}")
+    set(_ns_asio_vendored "${CMAKE_SOURCE_DIR}/ThirdParty/ASIOSDK")
+    set(_ns_asio_local    "G:/MY PLUGINS/AtiNAMatiC Series/AtiNAMatiC-Tone/juce-vst3-bridge/ASIOSDK")
+    if (EXISTS "${_ns_asio_vendored}/common/asio.h")
+        set(JUCE_ASIOSDK_PATH "${_ns_asio_vendored}")
+        set(NS_HAVE_ASIO TRUE)
+    elseif (EXISTS "${_ns_asio_local}/common/asio.h")
+        set(JUCE_ASIOSDK_PATH "${_ns_asio_local}")
         set(NS_HAVE_ASIO TRUE)
     else()
         message(STATUS "ASIO SDK not found — building without ASIO (WASAPI/DirectSound only)")
