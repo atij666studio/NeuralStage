@@ -76,15 +76,10 @@ public:
         setFullScreen (true);
        #else
         setResizable (true, true);
-        // Constrain the window so it cannot shrink below the design size,
-        // nor blow past a 4K display. The lower bound MUST match the
-        // designed layout size (kAppWidth x kAppHeight): the side rails
-        // host 2 knob cells + tuner (left) and 4 knob cells (right), and
-        // these all use fixed pixel heights. Shrinking below the design
-        // height collapses the rail area and the bottom-most knobs
-        // (OUTPUT on the right rail, AUTO LVL on the left rail) get
-        // pushed off-screen.
-        setResizeLimits (ns::UI::kAppWidth, ns::UI::kAppHeight, 3840, 2400);
+        // Allow the window to be resized below the design size so it is always
+        // accessible on small/touchscreen displays. Content will clip rather
+        // than the title bar becoming unreachable.
+        setResizeLimits (640, 480, 3840, 2400);
         // Restore previous window position+size if we saved one. JUCE's
         // restoreWindowStateFromString clamps to a visible display, so an
         // unplugged external monitor can't strand the window off-screen.
@@ -105,6 +100,15 @@ public:
         {
             centreWithSize (getWidth(), getHeight());
         }
+        // Clamp to the primary display's usable area so the title bar is always
+        // reachable on small screens (e.g. 11.6" 1366x768 touchscreen).
+        if (const auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        {
+            const auto area = d->userArea;
+            if (getWidth() > area.getWidth() || getHeight() > area.getHeight())
+                centreWithSize (juce::jmin (getWidth(),  area.getWidth()),
+                                juce::jmin (getHeight(), area.getHeight()));
+        }
        #endif
 
         setVisible (false);
@@ -118,6 +122,18 @@ public:
         windowStateFile().replaceWithText (getWindowStateAsString());
        #endif
         JUCEApplication::getInstance()->systemRequestedQuit();
+    }
+
+    bool keyPressed (const juce::KeyPress& key) override
+    {
+        // Ctrl+Q quit shortcut — useful on touchscreens where the title bar
+        // may be partially off-screen and the close button is hard to tap.
+        if (key == juce::KeyPress ('q', juce::ModifierKeys::ctrlModifier, 0))
+        {
+            closeButtonPressed();
+            return true;
+        }
+        return DocumentWindow::keyPressed (key);
     }
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
