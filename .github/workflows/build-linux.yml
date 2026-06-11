@@ -96,10 +96,18 @@ jobs:
           # Rename with build date so every download has a unique, identifiable filename
           mv NeuralStage-x86_64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-x86_64.AppImage"
 
+      - name: Upload Standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-x86_64-Standalone-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: ${{ steps.find.outputs.exe }}
+          retention-days: 30
+          if-no-files-found: warn
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: NeuralStage-Linux-x86_64-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          name: NeuralStage-Linux-x86_64-AppImage-${{ steps.date.outputs.date }}-r${{ github.run_number }}
           path: NeuralStage-${{ steps.date.outputs.date }}-x86_64.AppImage
           retention-days: 30
           if-no-files-found: warn
@@ -193,10 +201,18 @@ jobs:
 
           mv NeuralStage-aarch64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-aarch64.AppImage"
 
+      - name: Upload Standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeuralStage-Linux-ARM64-Standalone-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          path: ${{ steps.find.outputs.exe }}
+          retention-days: 30
+          if-no-files-found: warn
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: NeuralStage-Linux-ARM64-${{ steps.date.outputs.date }}-r${{ github.run_number }}
+          name: NeuralStage-Linux-ARM64-AppImage-${{ steps.date.outputs.date }}-r${{ github.run_number }}
           path: NeuralStage-${{ steps.date.outputs.date }}-aarch64.AppImage
           retention-days: 30
           if-no-files-found: warn
