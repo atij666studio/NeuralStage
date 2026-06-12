@@ -119,12 +119,15 @@ public:
         mMaxExternalBlockSize = maxBlockSize;
         mResampler.Reset (sampleRate, maxBlockSize);
 
-        // Size the encapsulated model's buffers for the up-sampled block it
-        // will actually receive (matches the reference's HACK comment).
-        const double upRatio = sampleRate / GetEncapsulatedSampleRate();
+        // Size the encapsulated model's buffers for the resampled block it
+        // will actually receive (matches the reference plugin's HACK comment).
+        // Pass the MODEL'S native sample rate (not the session rate) so the
+        // encapsulated model is always reset at the rate it was trained at.
+        const double modelSr   = GetEncapsulatedSampleRate();
+        const double upRatio   = sampleRate / modelSr;
         const auto maxEncapsulatedBlockSize =
             static_cast<int> (std::ceil (static_cast<double> (maxBlockSize) / upRatio));
-        mEncapsulated->ResetAndPrewarm (sampleRate, maxEncapsulatedBlockSize);
+        mEncapsulated->ResetAndPrewarm (modelSr, maxEncapsulatedBlockSize);
     }
 
     double GetEncapsulatedSampleRate() const { return GetNAMSampleRate (mEncapsulated); }

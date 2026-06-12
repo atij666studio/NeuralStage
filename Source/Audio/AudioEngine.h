@@ -186,6 +186,13 @@ private:
     std::atomic<float> bodyMacro     { 0.5f };
     std::atomic<float> airMacro      { 0.5f };
 
+    // Set true at the end of audioDeviceAboutToStart(), false in audioDeviceStopped().
+    // The callback returns silence immediately if this is false, preventing any
+    // DSP (including JACK) from running before all processors are fully prepared.
+    // This also stops uncaught C++ exceptions from propagating into JACK's C
+    // callback layer (which calls std::terminate and crashes the app).
+    std::atomic<bool>  audioReady    { false };
+
     // Glitch / overrun counter. Incremented on the audio thread when a
     // callback exceeds 80 % of its time budget; read+reset from the UI thread.
     std::atomic<int>   glitchCount   { 0 };

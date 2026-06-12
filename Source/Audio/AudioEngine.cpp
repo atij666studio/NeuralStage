@@ -1,4 +1,5 @@
 #include "AudioEngine.h"
+#include <stdexcept>
 
 AudioEngine::AudioEngine() = default;
 AudioEngine::~AudioEngine() { stop(); }
@@ -44,10 +45,15 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
     postFxChain.setHostPlayHead (&tempoClock);
 
     spectrumTap.prepare (currentSampleRate);
+
+    // Mark the engine ready AFTER every processor has been prepared.
+    // The callback checks this flag and returns silence until it is set.
+    audioReady.store (true);
 }
 
 void AudioEngine::audioDeviceStopped()
 {
+    audioReady.store (false);
     currentSampleRate = 0.0;
     currentBlockSize  = 0;
 }
@@ -59,6 +65,24 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputCha
                                                     int numSamples,
                                                     const juce::AudioIODeviceCallbackContext&)
 {
+    // Guard: if audioDeviceAboutToStart hasn't completed (or we're tearing down),
+    // return silence. On JACK this prevents the first callbacks from running DSP
+    // before all processors are prepared, and stops any C++ exception from
+    // propagating into JACK's C callback layer (which calls std::terminate).
+    if (! audioReady.load (std::memory_order_acquire))
+    {
+        for (int ch = 0; ch < numOutputChannels; ++ch)
+            if (outputChannelData[ch] != nullptr)
+                juce::FloatVectorOperations::clear (outputChannelData[ch], numSamples);
+        return;
+    }
+
+    // Wrap everything in try/catch: JACK's process callback is a C ABI
+    // boundary — a propagating C++ exception would call std::terminate and
+    // crash the app (the XRun-flood crash observed on Patchbox OS / Pi 5).
+    try
+    {
+
     // Pro-grade housekeeping: enable FTZ/DAZ for the duration of this
     // callback so subnormal numbers (which can otherwise hit the FPU and
     // create CPU spikes / crackles inside IIR tails, reverbs, plug-ins) are
@@ -138,6 +162,26 @@ void AudioEngine::audioDeviceIOCallbackWithContext (const float* const* inputCha
         if (outputChannelData[ch] == nullptr) continue;
         const int srcCh = juce::jmin (ch, st.getNumChannels() - 1);
         juce::FloatVectorOperations::copy (outputChannelData[ch], st.getReadPointer (srcCh), numSamples);
+    }
+
+    } // end try
+    catch (const std::exception& e)
+    {
+        // An exception inside the audio callback would propagate into JACK's C
+        // ABI and call std::terminate (crash + XRun flood). Catch it, output
+        // silence, and log — the device will keep running and the user can
+        // switch away without the app dying.
+        juce::Logger::writeToLog (juce::String ("AudioEngine callback exception: ") + e.what());
+        for (int ch = 0; ch < numOutputChannels; ++ch)
+            if (outputChannelData[ch] != nullptr)
+                juce::FloatVectorOperations::clear (outputChannelData[ch], numSamples);
+    }
+    catch (...)
+    {
+        juce::Logger::writeToLog ("AudioEngine callback: unknown exception caught");
+        for (int ch = 0; ch < numOutputChannels; ++ch)
+            if (outputChannelData[ch] != nullptr)
+                juce::FloatVectorOperations::clear (outputChannelData[ch], numSamples);
     }
 }
 
