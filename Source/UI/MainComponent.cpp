@@ -1477,7 +1477,9 @@ void MainComponent::resized()
     const float hScale        = juce::jmin (1.0f, (float) H / (float) kAppHeight);
     const int effectiveTopH   = juce::jmax (90,              juce::roundToInt (kTopH   * hScale));
     const int effectiveChainH = juce::jmax (32,              juce::roundToInt (kChainH * hScale));
-    const int effectiveBottomH= juce::jmax (kSceneBtnH + 8,  juce::roundToInt (kBottomH* hScale));
+    // Minimum must fit: (effectiveBottomH+kSceneBtnH)/2 + 2 + 18(util strip) ≤ effectiveBottomH
+    // → effectiveBottomH ≥ kSceneBtnH + 40 = 96.  Using kBottomH as upper bound.
+    const int effectiveBottomH= juce::jmax (kSceneBtnH + 40, juce::roundToInt (kBottomH* hScale));
 
     // Top knobs strip — full width.
     ampKnobs.setBounds (kPad, kPad, W - 2 * kPad, effectiveTopH);
@@ -1572,7 +1574,7 @@ void MainComponent::resized()
     // buttons, and vertically between the meter bar bottom and the scene
     // button row.
     {
-        const int sceneBtnTopAbs = bottomY + (kBottomH - kSceneBtnH) / 2;
+        const int sceneBtnTopAbs = bottomY + (effectiveBottomH - kSceneBtnH) / 2;
         const int meterBotAbs    = lcdY + lcdH + kPad + meterH;
         const int cpuH           = 14;
         const int cpuY           = (meterBotAbs + sceneBtnTopAbs) / 2 - cpuH / 2;
@@ -1605,7 +1607,7 @@ void MainComponent::resized()
     {
         constexpr int btnH    = 18;
         constexpr int btnGap  = 6;
-        const int     btnY    = bottomY + (kBottomH + kSceneBtnH) / 2 + 2;
+        const int     btnY    = bottomY + (effectiveBottomH + kSceneBtnH) / 2 + 2;
         // Central utility strip: 7 buttons (PRESETS moved out to the left gap).
         const int     widths[7] = { 64, 30, 56, 56, 52, 86, 48 };
         int totalW = 0;
