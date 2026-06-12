@@ -79,11 +79,30 @@ class App::MainWindow : public juce::DocumentWindow
         {
             const float scaleX = (float) getWidth()  / (float) ns::UI::kAppWidth;
             const float scaleY = (float) getHeight() / (float) ns::UI::kAppHeight;
-            const float scale  = juce::jmin (scaleX, scaleY);
-            const float offsetX = ((float) getWidth()  - ns::UI::kAppWidth  * scale) * 0.5f;
-            const float offsetY = ((float) getHeight() - ns::UI::kAppHeight * scale) * 0.5f;
-            inner.setTransform (juce::AffineTransform::scale (scale)
-                                    .translated (offsetX, offsetY));
+
+            if (scaleX >= 1.0f && scaleY >= 1.0f)
+            {
+                // Window at or above design size: let MainComponent fill the
+                // full window natively. Its resized() already handles larger W
+                // and H correctly (TopExtrasPanel divides evenly, LCD expands,
+                // side rails have more headroom for knobs + tuner).
+                inner.setTransform (juce::AffineTransform());
+                inner.setSize (getWidth(), getHeight());
+            }
+            else
+            {
+                // Window smaller than design in at least one dimension.
+                // Scale uniformly so SideRailPanel's fixed-height knob cells
+                // (≥542 px needed) are never clipped. A narrow letterbox bar may
+                // appear on the wider axis (e.g. 16:9 screen vs 3:2 design), but
+                // everything stays visible and fully interactive.
+                const float scale   = juce::jmin (scaleX, scaleY);
+                const float offsetX = ((float) getWidth()  - ns::UI::kAppWidth  * scale) * 0.5f;
+                const float offsetY = ((float) getHeight() - ns::UI::kAppHeight * scale) * 0.5f;
+                inner.setSize (ns::UI::kAppWidth, ns::UI::kAppHeight);
+                inner.setTransform (juce::AffineTransform::scale (scale)
+                                        .translated (offsetX, offsetY));
+            }
         }
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ScaledWrapper)
     };
