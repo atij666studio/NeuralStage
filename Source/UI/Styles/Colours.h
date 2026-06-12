@@ -31,12 +31,14 @@ namespace ns::Colours
     inline const juce::Colour accentHover   { 0xFF3A8993 };
     inline const juce::Colour accentGlow    { 0xFF66A8B0 };
 
-    // Text
-    inline const juce::Colour textPrimary   { 0xFFEAEAF0 };
-    inline const juce::Colour textSecondary { 0xFFA0A0B0 };
+    // Text — boosted for legibility on small screens (Pi 1024×600).
+    // "White" text on dark background is pure white; "dark" text on the
+    // lavender panels is pure/near-black.  Blue accent text is unchanged.
+    inline const juce::Colour textPrimary   { 0xFFFFFFFF };   // was 0xFFEAEAF0
+    inline const juce::Colour textSecondary { 0xFFCCCCDD };   // was 0xFFA0A0B0
     inline const juce::Colour textDisabled  { 0xFF5A5A6A };
-    inline const juce::Colour textOnPanel   { 0xFF0A0A12 };
-    inline const juce::Colour textOnPanelDim{ 0xFF38384A };
+    inline const juce::Colour textOnPanel   { 0xFF000000 };   // was 0xFF0A0A12
+    inline const juce::Colour textOnPanelDim{ 0xFF1C1C2A };   // was 0xFF38384A
 
     // Status
     inline const juce::Colour green         { 0xFF6FE39A };

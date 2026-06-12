@@ -1469,29 +1469,39 @@ void MainComponent::resized()
     const int W = getWidth();
     const int H = getHeight();
 
+    // When the window is shorter than the design height (e.g. Pi 1024×600),
+    // scale the top, chain, and bottom section heights proportionally so the
+    // centre LCD/rail area gets a fair share of the available pixels.
+    // All three panels (AmpKnobsPanel, SignalChainBar, SceneBar) are
+    // internally adaptive — they fill whatever bounds they're given.
+    const float hScale        = juce::jmin (1.0f, (float) H / (float) kAppHeight);
+    const int effectiveTopH   = juce::jmax (90,              juce::roundToInt (kTopH   * hScale));
+    const int effectiveChainH = juce::jmax (32,              juce::roundToInt (kChainH * hScale));
+    const int effectiveBottomH= juce::jmax (kSceneBtnH + 8,  juce::roundToInt (kBottomH* hScale));
+
     // Top knobs strip — full width.
-    ampKnobs.setBounds (kPad, kPad, W - 2 * kPad, kTopH);
+    ampKnobs.setBounds (kPad, kPad, W - 2 * kPad, effectiveTopH);
 
     // Signal chain row: a vertical SCAN button is glued to its left edge and
     // a vertical EDIT button to its right edge. The chain bar itself shrinks
     // to make room for both. Clicking a chain block now toggles bypass; the
     // EDIT button on the right is what opens the load/remove/replace popup.
-    const int chainY  = kPad + kTopH + kPad;
+    const int chainY  = kPad + effectiveTopH + kPad;
     const int vBtnW   = 22;
     const int vBtnGap = 4;
-    rescanBtn   .setBounds (kPad,                                       chainY, vBtnW, kChainH);
-    chainEditBtn.setBounds (W - kPad - vBtnW,                           chainY, vBtnW, kChainH);
+    rescanBtn   .setBounds (kPad,                                       chainY, vBtnW, effectiveChainH);
+    chainEditBtn.setBounds (W - kPad - vBtnW,                           chainY, vBtnW, effectiveChainH);
     signalChainBar.setBounds (kPad + vBtnW + vBtnGap,                   chainY,
-                              W - 2 * kPad - 2 * (vBtnW + vBtnGap),     kChainH);
+                              W - 2 * kPad - 2 * (vBtnW + vBtnGap),     effectiveChainH);
 
     // LCD area + side rails (rails extend all the way down to H - kPad).
-    const int lcdY    = chainY + kChainH + kPad;
+    const int lcdY    = chainY + effectiveChainH + kPad;
     const int railBot = H - kPad;
     const int railH   = railBot - lcdY;
     const int meterH  = 28;
 
     // LCD vertical: leaves room for meter bar then bottom row (scenes).
-    const int bottomY = H - kPad - kBottomH;
+    const int bottomY = H - kPad - effectiveBottomH;
     const int lcdH    = bottomY - lcdY - kPad - meterH - kPad;
 
     // Tuner height scales down when the rail is shorter than the design height
@@ -1518,7 +1528,7 @@ void MainComponent::resized()
     meterBar.setBounds (lcdX, lcdY + lcdH + kPad, lcdW, meterH);
 
     // Bottom row sits between the rails (rails are below us in z-order).
-    sceneBar.setBounds (lcdX, bottomY, lcdW, kBottomH);
+    sceneBar.setBounds (lcdX, bottomY, lcdW, effectiveBottomH);
 
     // ---- Items overlaid inside the left rail ----
     const int tunerY = railBot - tunerH;
@@ -1554,7 +1564,7 @@ void MainComponent::resized()
     const int rightGapR = rightRailLeft;
 
     const int brandH = kSceneBtnH;
-    const int brandY = bottomY + (kBottomH - kSceneBtnH) / 2;
+    const int brandY = bottomY + (effectiveBottomH - kSceneBtnH) / 2;
     leftBrandLabel .setBounds (leftGapL,  brandY, leftGapR  - leftGapL,  brandH);
     rightBrandLabel.setBounds (rightGapL, brandY, rightGapR - rightGapL, brandH);
 
