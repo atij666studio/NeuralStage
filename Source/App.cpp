@@ -80,12 +80,12 @@ class App::MainWindow : public juce::DocumentWindow
             const float scaleX = (float) getWidth()  / (float) ns::UI::kAppWidth;
             const float scaleY = (float) getHeight() / (float) ns::UI::kAppHeight;
 
-            // Minimum window dimensions where the adaptive layout (SideRailPanel
-            // shrinks cells proportionally) keeps everything visible without a
-            // transform. At 700×550 the two knob cells are ~80 px each — small
-            // but legible. Below this threshold we fall back to uniform scaling
-            // so nothing clips (the RPi 7" at 800×480 takes this path).
-            constexpr int kMinAdaptiveH = 700;
+            // Minimum window dimensions where the adaptive layout keeps everything
+            // visible without a transform.  550 px height covers the Pi 7" at
+            // 1024×600 — the tuner height scales down proportionally (MainComponent)
+            // so both side-rail knob cells still fit.  Below 550 px we fall back
+            // to uniform scaling (the RPi 800×480 display takes that path).
+            constexpr int kMinAdaptiveH = 550;
             constexpr int kMinAdaptiveW = 550;
 
             const bool adaptiveOk = (getWidth()  >= kMinAdaptiveW

@@ -125,16 +125,16 @@ void SideRailPanel::resized()
     r.removeFromTop (4);
 
     // Reserve the bottom for the tuner (placed by MainComponent).
-    const int reserveBottom = kTunerH + 6;
-    r.removeFromBottom (reserveBottom);
+    // mReservedTunerH is set by MainComponent before setBounds() and shrinks
+    // proportionally at small screen heights (e.g. 1024×600 Pi display).
+    r.removeFromBottom (mReservedTunerH + 6);
 
-    // Two knob cells stacked vertically. Preferred size is kRailKnobCellH+18;
-    // when the rail is shorter (e.g. Beelink 1366x768 full screen), divide
-    // the available space evenly so both cells always stay fully visible.
-    // Minimum 80 px per cell keeps the knob + label + toggle legible.
+    // Two knob cells stacked vertically — divide available space evenly.
+    // Minimum 70 px per cell: at 600 px window height each cell is ~77 px,
+    // which keeps the knob + label + toggle legible on a touch screen.
     const int gapBetween = 4;
     const int available  = r.getHeight();
-    const int cellH = juce::jmax (80, (available - gapBetween) / 2);
+    const int cellH = juce::jmax (70, (available - gapBetween) / 2);
 
     auto cell1 = r.removeFromTop (cellH);
     {

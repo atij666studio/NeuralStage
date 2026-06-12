@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "../Components/KnobComponent.h"
+#include "../Styles/UIConstants.h"
 
 /** Left rail: SWEET SPOT + AUTO LEVEL knobs with status readouts. */
 class SideRailPanel : public juce::Component,
@@ -19,6 +20,10 @@ public:
      *  floating blue dB readout strip just below the side-rail knobs. */
     int  getAutoLevelBottom() const { return grLabel.getBottom(); }
 
+    /** Called by MainComponent before setBounds() so the tuner reserve
+     *  matches the actual (possibly shrunk) tuner height at small screens. */
+    void setReservedTunerHeight (int h) { mReservedTunerH = h; }
+
 private:
     void timerCallback() override;
 
@@ -29,6 +34,8 @@ private:
     KnobComponent  autoLevel;
     juce::TextButton autoLevelOn { "OFF" };
     juce::Label    grLabel;
+
+    int mReservedTunerH { ns::UI::kTunerH };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SideRailPanel)
 };

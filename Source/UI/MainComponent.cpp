@@ -1494,6 +1494,19 @@ void MainComponent::resized()
     const int bottomY = H - kPad - kBottomH;
     const int lcdH    = bottomY - lcdY - kPad - meterH - kPad;
 
+    // Tuner height scales down when the rail is shorter than the design height
+    // (e.g. 1024×600 Pi touchscreen, railH ≈ 292 vs design ≈ 632).
+    // The proportional formula keeps the knob cells and the tuner all visible.
+    // kDesignRailH = kAppHeight - kPad - lcdY = 940 - 16 - 292 = 632.
+    constexpr int kDesignRailH = kAppHeight - kPad
+                                 - (kPad + kTopH + kPad + kChainH + kPad);
+    const int tunerH = juce::jmin (kTunerH,
+                                   (int) ((float) railH * kTunerH / kDesignRailH));
+
+    // Tell the left rail how much to reserve at its bottom before setBounds()
+    // triggers its resized() — so both knob cells are sized correctly first time.
+    sideRail.setReservedTunerHeight (tunerH);
+
     sideRail .setBounds (kPad,                      lcdY, kLeftRailW,  railH);
     topExtras.setBounds (W - kPad - kRightRailW,    lcdY, kRightRailW, railH);
 
@@ -1508,10 +1521,8 @@ void MainComponent::resized()
     sceneBar.setBounds (lcdX, bottomY, lcdW, kBottomH);
 
     // ---- Items overlaid inside the left rail ----
-    // Tuner fills the bottom of the left rail (original kTunerH — the blue
-    // dB readout strip is now a separate sibling component above it).
-    const int tunerY = railBot - kTunerH;
-    tunerPanel.setBounds (kPad, tunerY, kLeftRailW, kTunerH);
+    const int tunerY = railBot - tunerH;
+    tunerPanel.setBounds (kPad, tunerY, kLeftRailW, tunerH);
 
     // Floating dB readout strip: positioned in the dark gap between the
     // bottom of the AUTO LVL knob's "X.X dB" label (top edge of available
