@@ -80,22 +80,31 @@ class App::MainWindow : public juce::DocumentWindow
             const float scaleX = (float) getWidth()  / (float) ns::UI::kAppWidth;
             const float scaleY = (float) getHeight() / (float) ns::UI::kAppHeight;
 
-            if (scaleX >= 1.0f && scaleY >= 1.0f)
+            // Minimum window dimensions where the adaptive layout (SideRailPanel
+            // shrinks cells proportionally) keeps everything visible without a
+            // transform. At 700×550 the two knob cells are ~80 px each — small
+            // but legible. Below this threshold we fall back to uniform scaling
+            // so nothing clips (the RPi 7" at 800×480 takes this path).
+            constexpr int kMinAdaptiveH = 700;
+            constexpr int kMinAdaptiveW = 550;
+
+            const bool adaptiveOk = (getWidth()  >= kMinAdaptiveW
+                                  && getHeight() >= kMinAdaptiveH);
+
+            if ((scaleX >= 1.0f && scaleY >= 1.0f) || adaptiveOk)
             {
-                // Window at or above design size: let MainComponent fill the
-                // full window natively. Its resized() already handles larger W
-                // and H correctly (TopExtrasPanel divides evenly, LCD expands,
-                // side rails have more headroom for knobs + tuner).
+                // Window at or above design size, OR large enough for the
+                // adaptive layout — fill the full window natively. MainComponent
+                // handles any size ≥ kMinAdaptiveW × kMinAdaptiveH without
+                // clipping (TopExtrasPanel and SideRailPanel both scale
+                // proportionally to the available height/width).
                 inner.setTransform (juce::AffineTransform());
                 inner.setSize (getWidth(), getHeight());
             }
             else
             {
-                // Window smaller than design in at least one dimension.
-                // Scale uniformly so SideRailPanel's fixed-height knob cells
-                // (≥542 px needed) are never clipped. A narrow letterbox bar may
-                // appear on the wider axis (e.g. 16:9 screen vs 3:2 design), but
-                // everything stays visible and fully interactive.
+                // Window too small for the adaptive layout (e.g. RPi 7" at
+                // 800×480). Scale uniformly so nothing clips.
                 const float scale   = juce::jmin (scaleX, scaleY);
                 const float offsetX = ((float) getWidth()  - ns::UI::kAppWidth  * scale) * 0.5f;
                 const float offsetY = ((float) getHeight() - ns::UI::kAppHeight * scale) * 0.5f;

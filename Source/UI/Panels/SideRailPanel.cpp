@@ -128,9 +128,15 @@ void SideRailPanel::resized()
     const int reserveBottom = kTunerH + 6;
     r.removeFromBottom (reserveBottom);
 
-    // Two fixed-height knob cells stacked at the top of the rail. Each
-    // cell ends with a 16 px status label and a tight 16 px ON/OFF toggle.
-    auto cell1 = r.removeFromTop (kRailKnobCellH + 18);
+    // Two knob cells stacked vertically. Preferred size is kRailKnobCellH+18;
+    // when the rail is shorter (e.g. Beelink 1366x768 full screen), divide
+    // the available space evenly so both cells always stay fully visible.
+    // Minimum 80 px per cell keeps the knob + label + toggle legible.
+    const int gapBetween = 4;
+    const int available  = r.getHeight();
+    const int cellH = juce::jmax (80, (available - gapBetween) / 2);
+
+    auto cell1 = r.removeFromTop (cellH);
     {
         auto toggleRow = cell1.removeFromBottom (16);
         auto labelRow  = cell1.removeFromBottom (16);
@@ -139,9 +145,9 @@ void SideRailPanel::resized()
         sweetSpotOn .setBounds (toggleRow.withSizeKeepingCentre (60, 16));
     }
 
-    r.removeFromTop (4);
+    r.removeFromTop (gapBetween);
 
-    auto cell2 = r.removeFromTop (kRailKnobCellH + 18);
+    auto cell2 = r.removeFromTop (cellH);
     {
         auto toggleRow = cell2.removeFromBottom (16);
         auto labelRow  = cell2.removeFromBottom (16);
