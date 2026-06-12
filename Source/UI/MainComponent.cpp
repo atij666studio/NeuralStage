@@ -1512,8 +1512,14 @@ void MainComponent::resized()
     // kDesignRailH = kAppHeight - kPad - lcdY = 940 - 16 - 292 = 632.
     constexpr int kDesignRailH = kAppHeight - kPad
                                  - (kPad + kTopH + kPad + kChainH + kPad);
-    const int tunerH = juce::jmin (kTunerH,
-                                   (int) ((float) railH * kTunerH / kDesignRailH));
+    // Cap tunerH so each of the two knob cells in SideRailPanel is at least
+    // 120 px.  SideRailPanel overhead = reduced(10,12)+title(22)+gap(4) = 56,
+    // 2×120+4 = 244 → max tuner reserve = railH − 300.  Floor at 50 px so the
+    // tuner dial remains visible even on very short rail heights.
+    const int maxTunerH = juce::jmax (50, railH - 300);
+    const int tunerH    = juce::jmin (kTunerH,
+                                      juce::jmin ((int) ((float) railH * kTunerH / kDesignRailH),
+                                                  maxTunerH));
 
     // Tell the left rail how much to reserve at its bottom before setBounds()
     // triggers its resized() — so both knob cells are sized correctly first time.

@@ -291,11 +291,16 @@ void NamLcdPanel::resized()
     // Inset matches the LCD frame in paint().
     auto bounds = getLocalBounds().reduced (14 + 12);
 
-    // All dimensions are IDENTICAL to the original layout.
-    const int btnH  = 36;   // A / B horizontal button height (unchanged)
-    const int btnW  = 240;  // A / B horizontal button width  (unchanged)
-    const int sideW = 36;   // C / D vertical button width    (unchanged)
-    const int gap   = 12;   // gap between buttons and blend pad (unchanged)
+    // Scale A/B button height and gap proportionally at small panel heights so
+    // the blend pad retains enough vertical range to be usable (e.g. Pi 1024×600
+    // where lcdH ≈ 224 px vs the design ≈ 472 px).
+    // Design inner bounds height = 472 - 52 = 420 px; scale relative to that.
+    // btnH min 18 px, gap min 6 px — keeps buttons legible at any size.
+    const float hFrac = juce::jmin (1.0f, (float) bounds.getHeight() / 420.0f);
+    const int   btnH  = juce::jmax (18, juce::roundToInt (36.0f * hFrac));
+    const int   btnW  = 240;
+    const int   sideW = 36;
+    const int   gap   = juce::jmax (6,  juce::roundToInt (12.0f * hFrac));
 
     const int cx = bounds.getCentreX();
 
