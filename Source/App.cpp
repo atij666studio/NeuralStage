@@ -167,6 +167,14 @@ public:
             if (getWidth() > area.getWidth() || getHeight() > area.getHeight())
                 centreWithSize (juce::jmin (getWidth(),  area.getWidth()),
                                 juce::jmin (getHeight(), area.getHeight()));
+
+           #if JUCE_LINUX
+            // On small embedded Linux displays (Raspberry Pi 1024x600, etc.)
+            // maximise leaves the taskbar uncovered. Auto-start in true
+            // fullscreen so the app fills the entire screen.
+            if (d->totalArea.getHeight() <= 700)
+                setFullScreen (true);
+           #endif
         }
        #endif
 
@@ -185,6 +193,13 @@ public:
 
     bool keyPressed (const juce::KeyPress& key) override
     {
+        // F11 — toggle true fullscreen (covers the OS taskbar on Linux/Windows).
+        // Useful on touch screens: press once to fill the display, again to exit.
+        if (key.getKeyCode() == juce::KeyPress::F11Key)
+        {
+            setFullScreen (! isFullScreen());
+            return true;
+        }
         // Ctrl+Q quit shortcut — useful on touchscreens where the title bar
         // may be partially off-screen and the close button is hard to tap.
         if (key == juce::KeyPress ('q', juce::ModifierKeys::ctrlModifier, 0))
