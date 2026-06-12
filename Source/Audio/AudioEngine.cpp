@@ -18,27 +18,33 @@ void AudioEngine::stop()
 
 void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
+    audioReady.store (false);   // clear before re-prepare (safe for re-entry)
+
     currentSampleRate = device->getCurrentSampleRate();
     currentBlockSize  = device->getCurrentBufferSizeSamples();
+
+    juce::Logger::writeToLog (juce::String ("AudioEngine: prepare SR=")
+                              + juce::String (currentSampleRate) + " block=" + juce::String (currentBlockSize)
+                              + " device=" + device->getName());
 
     monoWork  .setSize (1, currentBlockSize, false, false, true);
     stereoWork.setSize (2, currentBlockSize, false, false, true);
 
-    input .prepare (currentSampleRate, currentBlockSize);
-    gate  .prepare (currentSampleRate, currentBlockSize);
-    sweetSpot.prepare (currentSampleRate, currentBlockSize, 1);
-    transpose.prepare (currentSampleRate, currentBlockSize);
-    ampTone  .prepare (currentSampleRate, currentBlockSize);
-    preFxChain .prepare (currentSampleRate, currentBlockSize, 1);
-    nam   .prepare (currentSampleRate, currentBlockSize);
-    autoLevel.prepare (currentSampleRate, currentBlockSize, 1);
-    eq    .prepare (currentSampleRate, currentBlockSize);
-    postFxChain.prepare (currentSampleRate, currentBlockSize, 2);
-    doubler.prepare (currentSampleRate, currentBlockSize, 2);
-    looper      .prepare (currentSampleRate, currentBlockSize, 2);
-    backingTrack.prepare (currentSampleRate, currentBlockSize);
-    output.prepare (currentSampleRate, currentBlockSize);
-    tuner .prepare (currentSampleRate, currentBlockSize);
+    input .prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  input OK");
+    gate  .prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  gate OK");
+    sweetSpot.prepare (currentSampleRate, currentBlockSize, 1); juce::Logger::writeToLog ("  sweetSpot OK");
+    transpose.prepare (currentSampleRate, currentBlockSize);    juce::Logger::writeToLog ("  transpose OK");
+    ampTone  .prepare (currentSampleRate, currentBlockSize);    juce::Logger::writeToLog ("  ampTone OK");
+    preFxChain .prepare (currentSampleRate, currentBlockSize, 1); juce::Logger::writeToLog ("  preFxChain OK");
+    nam   .prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  nam OK");
+    autoLevel.prepare (currentSampleRate, currentBlockSize, 1); juce::Logger::writeToLog ("  autoLevel OK");
+    eq    .prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  eq OK");
+    postFxChain.prepare (currentSampleRate, currentBlockSize, 2); juce::Logger::writeToLog ("  postFxChain OK");
+    doubler.prepare (currentSampleRate, currentBlockSize, 2);   juce::Logger::writeToLog ("  doubler OK");
+    looper      .prepare (currentSampleRate, currentBlockSize, 2); juce::Logger::writeToLog ("  looper OK");
+    backingTrack.prepare (currentSampleRate, currentBlockSize); juce::Logger::writeToLog ("  backingTrack OK");
+    output.prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  output OK");
+    tuner .prepare (currentSampleRate, currentBlockSize);       juce::Logger::writeToLog ("  tuner OK");
 
     tempoClock.prepare (currentSampleRate);
     preFxChain .setHostPlayHead (&tempoClock);
@@ -49,6 +55,7 @@ void AudioEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
     // Mark the engine ready AFTER every processor has been prepared.
     // The callback checks this flag and returns silence until it is set.
     audioReady.store (true);
+    juce::Logger::writeToLog ("AudioEngine: audioReady=true");
 }
 
 void AudioEngine::audioDeviceStopped()

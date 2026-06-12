@@ -93,6 +93,15 @@ jobs:
             --icon-file NeuralStage.png \
             --output appimage
 
+          # Strip audio-system libraries from the bundle: JACK, ALSA, and
+          # PipeWire must match the version running on the target system.
+          # Bundling them causes JACK IPC/shared-memory protocol mismatches
+          # (e.g. jack_port_register() returns null → SIGSEGV on first callback).
+          # The dynamic linker falls back to the system-installed versions.
+          find AppDir -name "libjack*.so*"      -delete 2>/dev/null || true
+          find AppDir -name "libasound*.so*"    -delete 2>/dev/null || true
+          find AppDir -name "libpipewire*.so*"  -delete 2>/dev/null || true
+
           # Rename with build date so every download has a unique, identifiable filename
           mv NeuralStage-x86_64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-x86_64.AppImage"
 
@@ -201,6 +210,14 @@ jobs:
             --desktop-file NeuralStage.desktop \
             --icon-file NeuralStage.png \
             --output appimage
+
+          # Strip audio-system libraries — same reason as x86_64:
+          # JACK/ALSA/PipeWire libraries must come from the target system.
+          # On Patchbox OS (Raspberry Pi), a bundled libjack causes IPC
+          # protocol mismatches with the running jackd server → SIGSEGV.
+          find AppDir -name "libjack*.so*"      -delete 2>/dev/null || true
+          find AppDir -name "libasound*.so*"    -delete 2>/dev/null || true
+          find AppDir -name "libpipewire*.so*"  -delete 2>/dev/null || true
 
           mv NeuralStage-aarch64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-aarch64.AppImage"
 
