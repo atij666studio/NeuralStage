@@ -80,13 +80,20 @@ class App::MainWindow : public juce::DocumentWindow
             const float scaleX = (float) getWidth()  / (float) ns::UI::kAppWidth;
             const float scaleY = (float) getHeight() / (float) ns::UI::kAppHeight;
 
-            // Minimum window dimensions where the adaptive layout keeps everything
-            // visible without a transform.  550 px height covers the Pi 7" at
-            // 1024×600 — the tuner height scales down proportionally (MainComponent)
-            // so both side-rail knob cells still fit.  Below 550 px we fall back
-            // to uniform scaling (the RPi 800×480 display takes that path).
-            constexpr int kMinAdaptiveH = 550;
-            constexpr int kMinAdaptiveW = 550;
+            // Minimum window dimensions for the adaptive (no-transform) layout.
+            //
+            // WIDTH ≥ 900: scene-button row needs 476 px of LCD area. LCD area =
+            //   W − 2×(kPad + kRailW + kPad) = W − 424. At W=900 that is exactly
+            //   476 px. Below 900 the row overflows the sceneBar and clips, so we
+            //   fall back to uniform scaling instead.
+            //
+            // HEIGHT ≥ 480: on a 1024×600 Pi screen the WM subtracts the taskbar
+            //   (~28 px) and the native title bar (~28 px) from the client area,
+            //   leaving ≈544 px. 480 keeps the adaptive path for any reasonable
+            //   Pi windowed config; true small screens (e.g. 800×480 with
+            //   decorations, ~420 px client) still drop to uniform scaling.
+            constexpr int kMinAdaptiveH = 480;
+            constexpr int kMinAdaptiveW = 900;
 
             const bool adaptiveOk = (getWidth()  >= kMinAdaptiveW
                                   && getHeight() >= kMinAdaptiveH);
@@ -169,11 +176,13 @@ public:
                                 juce::jmin (getHeight(), area.getHeight()));
 
            #if JUCE_LINUX
-            // On small embedded Linux displays (Raspberry Pi 1024x600, etc.)
-            // maximise leaves the taskbar uncovered. Auto-start in true
-            // fullscreen so the app fills the entire screen.
+            // On small embedded Linux displays (Raspberry Pi 1024×600, etc.)
+            // we want true fullscreen. We can't call setFullScreen() here
+            // because the X11 window isn't mapped yet (the _NET_WM_STATE atom
+            // is silently dropped on unmapped windows). Store a flag and apply
+            // it in visibilityChanged() once the window is visible.
             if (d->totalArea.getHeight() <= 700)
-                setFullScreen (true);
+                mAutoFullscreen = true;
            #endif
         }
        #endif
@@ -189,6 +198,23 @@ public:
         windowStateFile().replaceWithText (getWindowStateAsString());
        #endif
         JUCEApplication::getInstance()->systemRequestedQuit();
+    }
+
+    void visibilityChanged() override
+    {
+        DocumentWindow::visibilityChanged();
+       #if JUCE_LINUX
+        // Apply auto-fullscreen now that the window is visible and its X11
+        // window is mapped. Calling setFullScreen() before setVisible(true)
+        // sends the _NET_WM_STATE atom to an unmapped window, which most
+        // window managers silently ignore — causing the "sometimes works
+        // sometimes doesn't" behaviour on Patchbox OS / Openbox.
+        if (isVisible() && mAutoFullscreen)
+        {
+            mAutoFullscreen = false;
+            setFullScreen (true);
+        }
+       #endif
     }
 
     bool keyPressed (const juce::KeyPress& key) override
@@ -209,6 +235,8 @@ public:
         }
         return DocumentWindow::keyPressed (key);
     }
+
+    bool mAutoFullscreen = false;   // set in ctor, applied in visibilityChanged()
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
 };
