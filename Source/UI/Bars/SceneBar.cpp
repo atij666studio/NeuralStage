@@ -187,11 +187,15 @@ void SceneBar::resized()
     const int n = (int) buttons.size();
     const int totalW = n * kSceneBtnW + (n - 1) * kSceneSpacing;
     int x = (getWidth() - totalW) / 2;
-    const int y = (getHeight() - kSceneBtnH) / 2;
+    // Button height scales proportionally with the panel (which MainComponent
+    // shrinks at small screen heights).  The formula matches what MainComponent
+    // computes for effectiveSceneBtnH: max(28, getHeight() - 40).
+    const int btnH = juce::jmin (kSceneBtnH, juce::jmax (28, getHeight() - 40));
+    const int y = (getHeight() - btnH) / 2;
 
     for (int i = 0; i < n; ++i)
     {
-        buttons[(size_t) i]->setBounds (x, y, kSceneBtnW, kSceneBtnH);
+        buttons[(size_t) i]->setBounds (x, y, kSceneBtnW, btnH);
         x += kSceneBtnW + kSceneSpacing;
     }
 }

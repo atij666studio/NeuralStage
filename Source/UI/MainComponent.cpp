@@ -1477,9 +1477,12 @@ void MainComponent::resized()
     const float hScale        = juce::jmin (1.0f, (float) H / (float) kAppHeight);
     const int effectiveTopH   = juce::jmax (90,              juce::roundToInt (kTopH   * hScale));
     const int effectiveChainH = juce::jmax (32,              juce::roundToInt (kChainH * hScale));
-    // Minimum must fit: (effectiveBottomH+kSceneBtnH)/2 + 2 + 18(util strip) ≤ effectiveBottomH
-    // → effectiveBottomH ≥ kSceneBtnH + 40 = 96.  Using kBottomH as upper bound.
-    const int effectiveBottomH= juce::jmax (kSceneBtnH + 40, juce::roundToInt (kBottomH* hScale));
+    // Scene buttons scale proportionally so the bottom bar doesn't dominate at
+    // small screen heights.  Minimum 28 px keeps the text legible.
+    const int effectiveSceneBtnH = juce::jmax (28, juce::roundToInt (kSceneBtnH * hScale));
+    // Minimum must fit: (effectiveBottomH+effectiveSceneBtnH)/2 + 2 + 18(util strip) ≤ effectiveBottomH
+    // → effectiveBottomH ≥ effectiveSceneBtnH + 40.  Using kBottomH as upper bound.
+    const int effectiveBottomH   = juce::jmax (effectiveSceneBtnH + 40, juce::roundToInt (kBottomH * hScale));
 
     // Top knobs strip — full width.
     ampKnobs.setBounds (kPad, kPad, W - 2 * kPad, effectiveTopH);
@@ -1512,14 +1515,8 @@ void MainComponent::resized()
     // kDesignRailH = kAppHeight - kPad - lcdY = 940 - 16 - 292 = 632.
     constexpr int kDesignRailH = kAppHeight - kPad
                                  - (kPad + kTopH + kPad + kChainH + kPad);
-    // Cap tunerH so each of the two knob cells in SideRailPanel is at least
-    // 120 px.  SideRailPanel overhead = reduced(10,12)+title(22)+gap(4) = 56,
-    // 2×120+4 = 244 → max tuner reserve = railH − 300.  Floor at 50 px so the
-    // tuner dial remains visible even on very short rail heights.
-    const int maxTunerH = juce::jmax (50, railH - 300);
-    const int tunerH    = juce::jmin (kTunerH,
-                                      juce::jmin ((int) ((float) railH * kTunerH / kDesignRailH),
-                                                  maxTunerH));
+    const int tunerH = juce::jmin (kTunerH,
+                                    (int) ((float) railH * kTunerH / kDesignRailH));
 
     // Tell the left rail how much to reserve at its bottom before setBounds()
     // triggers its resized() — so both knob cells are sized correctly first time.
@@ -1571,8 +1568,8 @@ void MainComponent::resized()
     const int rightGapL = scene4Right;
     const int rightGapR = rightRailLeft;
 
-    const int brandH = kSceneBtnH;
-    const int brandY = bottomY + (effectiveBottomH - kSceneBtnH) / 2;
+    const int brandH = effectiveSceneBtnH;
+    const int brandY = bottomY + (effectiveBottomH - effectiveSceneBtnH) / 2;
     leftBrandLabel .setBounds (leftGapL,  brandY, leftGapR  - leftGapL,  brandH);
     rightBrandLabel.setBounds (rightGapL, brandY, rightGapR - rightGapL, brandH);
 
@@ -1580,7 +1577,7 @@ void MainComponent::resized()
     // buttons, and vertically between the meter bar bottom and the scene
     // button row.
     {
-        const int sceneBtnTopAbs = bottomY + (effectiveBottomH - kSceneBtnH) / 2;
+        const int sceneBtnTopAbs = bottomY + (effectiveBottomH - effectiveSceneBtnH) / 2;
         const int meterBotAbs    = lcdY + lcdH + kPad + meterH;
         const int cpuH           = 14;
         const int cpuY           = (meterBotAbs + sceneBtnTopAbs) / 2 - cpuH / 2;
@@ -1613,7 +1610,7 @@ void MainComponent::resized()
     {
         constexpr int btnH    = 18;
         constexpr int btnGap  = 6;
-        const int     btnY    = bottomY + (effectiveBottomH + kSceneBtnH) / 2 + 2;
+        const int     btnY    = bottomY + (effectiveBottomH + effectiveSceneBtnH) / 2 + 2;
         // Central utility strip: 7 buttons (PRESETS moved out to the left gap).
         const int     widths[7] = { 64, 30, 56, 56, 52, 86, 48 };
         int totalW = 0;
