@@ -63,23 +63,54 @@ static juce::File lastPresetPathFile()
 #ifndef NS_BUILD_PLUGIN
 class App::MainWindow : public juce::DocumentWindow
 {
+    // Wraps MainComponent and applies a uniform scale transform so the entire
+    // UI shrinks/grows proportionally when the window is smaller or larger than
+    // the 1400×940 design size.  MainComponent always lays out at design size;
+    // the transform handles all hit-testing and painting automatically.
+    struct ScaledWrapper : public juce::Component
+    {
+        MainComponent inner;
+        ScaledWrapper()
+        {
+            addAndMakeVisible (inner);
+            setSize (ns::UI::kAppWidth, ns::UI::kAppHeight);
+        }
+        void resized() override
+        {
+            const float scaleX = (float) getWidth()  / (float) ns::UI::kAppWidth;
+            const float scaleY = (float) getHeight() / (float) ns::UI::kAppHeight;
+            const float scale  = juce::jmin (scaleX, scaleY);
+            const float offsetX = ((float) getWidth()  - ns::UI::kAppWidth  * scale) * 0.5f;
+            const float offsetY = ((float) getHeight() - ns::UI::kAppHeight * scale) * 0.5f;
+            inner.setTransform (juce::AffineTransform::scale (scale)
+                                    .translated (offsetX, offsetY));
+        }
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ScaledWrapper)
+    };
+
 public:
+    MainComponent* getMainComponent() const noexcept
+    {
+        if (auto* sw = dynamic_cast<ScaledWrapper*> (getContentComponent()))
+            return &sw->inner;
+        return nullptr;
+    }
+
     MainWindow (juce::String name)
         : DocumentWindow (name,
                           ns::Colours::background,
                           DocumentWindow::allButtons)
     {
         setUsingNativeTitleBar (true);
-        setContentOwned (new MainComponent(), true);
+        setContentOwned (new ScaledWrapper(), true);
 
        #if JUCE_IOS || JUCE_ANDROID
         setFullScreen (true);
        #else
         setResizable (true, true);
-        // Allow the window to be resized below the design size so it is always
-        // accessible on small/touchscreen displays. Content will clip rather
-        // than the title bar becoming unreachable.
-        setResizeLimits (640, 480, 3840, 2400);
+        // The window can be smaller than the design size; ScaledWrapper will
+        // scale the full UI proportionally to fit — nothing clips or hides.
+        setResizeLimits (320, 240, 3840, 2400);
         // Restore previous window position+size if we saved one. JUCE's
         // restoreWindowStateFromString clamps to a visible display, so an
         // unplugged external monitor can't strand the window off-screen.
@@ -474,8 +505,7 @@ void App::initialise (const juce::String&)
         const int lastIdx = readLastActiveScene();
         if (juce::isPositiveAndBelow (lastIdx, SceneManager::kNumScenes))
         {
-            if (auto* mc = dynamic_cast<MainComponent*> (
-                    mainWindow != nullptr ? mainWindow->getContentComponent() : nullptr))
+            if (auto* mc = (mainWindow != nullptr ? mainWindow->getMainComponent() : nullptr))
                 mc->setActiveSceneIndicator (lastIdx);
         }
     });

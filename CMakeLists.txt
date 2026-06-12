@@ -246,6 +246,13 @@ if (NS_HAVE_NAM_CORE)
         # constructor/loadSlot are the primary registration guarantee on MSVC.
         target_link_options(NeuralStage PRIVATE "/WHOLEARCHIVE:nam_core.lib")
     endif()
+    if (UNIX AND NOT APPLE)
+        # ResamplingNAM.h includes ResamplingContainer.h which has a using-alias
+        # that shadows a class name — GCC 12 hard-errors on this. Same fix as
+        # nam_core below; needed here because NAMProcessor.cpp is compiled as
+        # part of NeuralStage, not inside nam_core.
+        target_compile_options(NeuralStage PRIVATE -fpermissive)
+    endif()
 endif()
 
 # ==============================================================================
@@ -376,6 +383,9 @@ if (NS_HAVE_NAM_CORE)
             "LINKER:--whole-archive" "$<TARGET_FILE:nam_core>" "LINKER:--no-whole-archive")
     elseif (MSVC)
         target_link_options(NeuralStagePlugin PRIVATE "/WHOLEARCHIVE:nam_core.lib")
+    endif()
+    if (UNIX AND NOT APPLE)
+        target_compile_options(NeuralStagePlugin PRIVATE -fpermissive)
     endif()
 endif()
 
