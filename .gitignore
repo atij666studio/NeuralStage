@@ -52,10 +52,6 @@ _Backups/
 # JUCE if vendored separately
 ThirdParty/JUCE/
 
-# ASIO SDK — Steinberg license prohibits redistribution.
-# Download from https://www.steinberg.net/asiosdk and place at ThirdParty/ASIOSDK/.
-# CMakeLists.txt detects it automatically; without it the build falls back to WASAPI.
-ThirdParty/ASIOSDK/
 
 # IDE
 .cache/
