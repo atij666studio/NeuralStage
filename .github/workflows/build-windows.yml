@@ -27,10 +27,16 @@ jobs:
       - name: Init NeuralAmpModelerCore submodule
         run: git submodule update --init --recursive ThirdParty/NeuralAmpModelerCore
 
-      # ASIOSDK is a private submodule in the same owner account.
-      # GITHUB_TOKEN has read access to it automatically.
+      # ASIOSDK is a private repo (build-deps). GITHUB_TOKEN is scoped to this
+      # repo only and cannot clone other repos — use a PAT stored as a secret.
+      # Secret name: BUILD_DEPS_TOKEN  (repo secret in NeuralStage settings)
       - name: Init ASIOSDK submodule
-        run: git submodule update --init ThirdParty/ASIOSDK
+        env:
+          TOKEN: ${{ secrets.BUILD_DEPS_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init ThirdParty/ASIOSDK
+          git config --global --unset url."https://x-access-token:${TOKEN}@github.com/".insteadOf
 
       - name: Configure
         run: cmake -S . -B Builds -G "Visual Studio 17 2022" -A x64
