@@ -340,7 +340,15 @@ jobs:
           body: |
             ## NeuralStage ${{ github.ref_name }}
 
-            See assets below for all platforms. Windows builds are added by the
-            separate Windows CI job — publish the draft once all jobs complete.
+            See assets below for all platforms. Windows and macOS builds are added
+            by their respective CI jobs — publish the draft once all jobs complete.
+
+            ### macOS — first launch (Gatekeeper bypass)
+            Apple blocks unsigned apps. To open NeuralStage on macOS, **right-click →
+            Open → Open** (first time only), or run in Terminal:
+            ```
+            xattr -cr /path/to/NeuralStage.app
+            ```
+            After the first launch, it opens normally.
 
             _Full changelog: [CHANGELOG.md](CHANGELOG.md)_
