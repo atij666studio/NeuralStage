@@ -44,9 +44,16 @@ jobs:
       - name: Locate artifacts
         id: find
         run: |
-          APP=$(find  Builds -maxdepth 6 -name "NeuralStage.app"   -type d | head -1)
-          VST3=$(find Builds -maxdepth 6 -name "NeuralStage.vst3"  -type d | head -1)
-          CLAP=$(find Builds -maxdepth 6 -name "NeuralStage.*.clap"        | head -1)
+          APP=$(find  Builds -name "NeuralStage.app"    -type d 2>/dev/null | head -1)
+          VST3=$(find Builds -name "NeuralStage.vst3"   -type d 2>/dev/null | head -1)
+          CLAP=$(find Builds -name "NeuralStage.*.clap"          2>/dev/null | head -1)
+
+          if [ -z "$APP" ]; then
+            echo "::error::NeuralStage.app not found — build tree:"
+            find Builds -maxdepth 5 -type d | head -40 || true
+            exit 1
+          fi
+
           echo "app=$APP"   >> "$GITHUB_OUTPUT"
           echo "vst3=$VST3" >> "$GITHUB_OUTPUT"
           echo "clap=$CLAP" >> "$GITHUB_OUTPUT"
@@ -55,6 +62,7 @@ jobs:
         run: |
           APP="${{ steps.find.outputs.app }}"
           BIN="$APP/Contents/MacOS/NeuralStage"
+          echo "app path : $APP"
           echo "Architectures in $BIN:"
           lipo -info "$BIN"
 
