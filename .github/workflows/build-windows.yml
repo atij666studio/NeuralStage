@@ -74,7 +74,6 @@ jobs:
           $ver = (Select-String -Path CMakeLists.txt -Pattern 'project\(NeuralStage VERSION ([0-9.]+)').Matches.Groups[1].Value
           echo "version=$ver" >> $env:GITHUB_OUTPUT
 
-      # Ninja is a single-config generator: no Release\ subdirectory in the paths.
       - name: Stage binaries
         shell: pwsh
         run: |
@@ -83,9 +82,9 @@ jobs:
           if (Test-Path $binDir) { Remove-Item $binDir -Recurse -Force }
           New-Item -ItemType Directory -Path $binDir | Out-Null
 
-          $exeSrc  = "Builds\NeuralStage_artefacts\NeuralStage.v.$ver.exe"
-          $vst3Src = "Builds\NeuralStagePlugin_artefacts\VST3\NeuralStage.vst3"
-          $clapSrc = "Builds\NeuralStagePlugin_artefacts\CLAP\NeuralStage.v.$ver.clap"
+          $exeSrc  = "Builds\NeuralStage_artefacts\Release\NeuralStage.v.$ver.exe"
+          $vst3Src = "Builds\NeuralStagePlugin_artefacts\Release\VST3\NeuralStage.vst3"
+          $clapSrc = "Builds\NeuralStagePlugin_artefacts\Release\CLAP\NeuralStage.v.$ver.clap"
 
           foreach ($p in @($exeSrc, $vst3Src, $clapSrc)) {
             if (-not (Test-Path $p)) {
