@@ -27,19 +27,18 @@ jobs:
       - name: Init NeuralAmpModelerCore submodule
         run: git submodule update --init --recursive ThirdParty/NeuralAmpModelerCore
 
-      - name: Install Ninja
-        run: brew install ninja
-
+      # Use the Xcode generator — it handles Universal Binary (arm64;x86_64)
+      # natively and avoids the Ninja + multi-arch configure-time issues that
+      # cause JUCE to silently produce zero build artefacts.
       - name: Configure (Universal Binary arm64 + x86_64)
         run: |
           cmake -S . -B Builds \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
+            -G Xcode \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
 
       - name: Build
-        run: cmake --build Builds --config Release --parallel $(sysctl -n hw.logicalcpu)
+        run: cmake --build Builds --config Release -- -jobs $(sysctl -n hw.logicalcpu)
 
       - name: Locate artifacts
         id: find
@@ -50,7 +49,7 @@ jobs:
 
           if [ -z "$APP" ]; then
             echo "::error::NeuralStage.app not found — build tree:"
-            find Builds -maxdepth 5 -type d | head -40 || true
+            find Builds -maxdepth 4 -type d | grep -v CMakeFiles | grep -v "\.build" | head -40 || true
             exit 1
           fi
 

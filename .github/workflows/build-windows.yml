@@ -30,9 +30,11 @@ jobs:
       # ASIOSDK is a private repo (build-deps). GITHUB_TOKEN is scoped to this
       # repo only and cannot clone other repos — use a PAT stored as a secret.
       # Secret name: BUILD_DEPS_TOKEN  (repo secret in NeuralStage settings)
+      # shell: bash so that ${TOKEN} expands correctly (PowerShell uses $env:TOKEN).
       - name: Init ASIOSDK submodule
         env:
           TOKEN: ${{ secrets.BUILD_DEPS_TOKEN }}
+        shell: bash
         run: |
           git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
           git submodule update --init ThirdParty/ASIOSDK
@@ -52,6 +54,18 @@ jobs:
 
       - name: Build
         run: cmake --build Builds --parallel
+
+      - name: List build artefacts
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "=== Executables / plugins found under Builds\ ==="
+          Get-ChildItem -Recurse Builds -Include "*.exe","*.vst3","*.clap" -ErrorAction SilentlyContinue |
+            Select-Object FullName | Format-Table -AutoSize
+          if (-not (Get-ChildItem -Recurse Builds -Include "*.exe" -ErrorAction SilentlyContinue)) {
+            Write-Host "No .exe found — top-level Builds\ dirs:"
+            Get-ChildItem Builds -Directory | Select-Object Name
+          }
 
       - name: Read version from CMakeLists
         id: ver
