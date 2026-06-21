@@ -79,3 +79,35 @@ try {
 }
 
 if ("${env:LAUNCH}" -eq "1") { Start-Process "$binDir\NeuralStage.exe" }
+
+# ---------- optional: upload Windows builds to a GitHub Release --------------
+# Requires: gh CLI (winget install GitHub.cli) + gh auth login
+# Usage: set $env:GH_RELEASE to a tag (e.g. "v0.2.1") before running build.ps1,
+#        or pass it as an argument: build.ps1 -Release v0.2.1
+param([string]$Release = $env:GH_RELEASE)
+
+if ($Release) {
+    $gh = (Get-Command gh -ErrorAction SilentlyContinue)?.Source
+    if (-not $gh) {
+        Write-Warning "gh CLI not found — skipping GitHub Release upload."
+        Write-Warning "  Install: winget install GitHub.cli  then  gh auth login"
+    } else {
+        Write-Host "`n==> Uploading Windows builds to GitHub Release $Release ..." -ForegroundColor Cyan
+        $winDir = "$PSScriptRoot\Installer\WIN"
+        $uploads = Get-ChildItem $winDir -Filter "*.zip" | Select-Object -ExpandProperty FullName
+        if ($uploads) {
+            & $gh release upload $Release @uploads --clobber
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  Uploaded: $($uploads -join ', ')" -ForegroundColor Green
+            } else {
+                Write-Warning "  gh release upload failed (exit $LASTEXITCODE). Upload manually via GitHub web UI."
+            }
+        } else {
+            Write-Warning "  No .zip files found in $winDir — run build + iscc first."
+        }
+    }
+} else {
+    Write-Host "`n==> To upload Windows builds to a GitHub Release:" -ForegroundColor DarkGray
+    Write-Host "      Set-Variable GH_RELEASE v0.2.1 ; .\build.ps1 -Release v0.2.1" -ForegroundColor DarkGray
+    Write-Host "    Or drag Installer\WIN\*.zip into the release on github.com/releases" -ForegroundColor DarkGray
+}

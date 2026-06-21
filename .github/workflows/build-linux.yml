@@ -3,6 +3,7 @@ name: Linux Build
 on:
   push:
     branches: [main, master, develop]
+    tags: ['v*.*.*']
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -20,10 +21,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      # ASIO SDK is a private Windows-only submodule — not needed for Linux builds.
+      # Only init NeuralAmpModelerCore (and its own sub-dependencies).
+      - name: Init NeuralAmpModelerCore submodule
+        run: git submodule update --init --recursive ThirdParty/NeuralAmpModelerCore
 
       - name: Set build date
         id: date
@@ -105,7 +109,26 @@ jobs:
           # Rename with build date so every download has a unique, identifiable filename
           mv NeuralStage-x86_64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-x86_64.AppImage"
 
-      - name: Upload Standalone
+      - name: Package artifacts as zips
+        run: |
+          TAG="${{ github.ref_name }}"
+          mkdir -p zips
+
+          # Standalone
+          EXE="${{ steps.find.outputs.exe }}"
+          zip "zips/NeuralStage-${TAG}-Linux-x86_64-Standalone.zip" "$EXE"
+
+          # AppImage
+          zip "zips/NeuralStage-${TAG}-Linux-x86_64-AppImage.zip" \
+              "NeuralStage-${{ steps.date.outputs.date }}-x86_64.AppImage"
+
+          # VST3 (directory)
+          VST3="${{ steps.find.outputs.vst3 }}"
+          (cd "$(dirname "$VST3")" && \
+           zip -r "$OLDPWD/zips/NeuralStage-${TAG}-Linux-x86_64-VST3.zip" \
+               "$(basename "$VST3")")
+
+      - name: Upload Standalone artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-x86_64-Standalone-${{ steps.date.outputs.date }}-r${{ github.run_number }}
@@ -113,7 +136,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Upload AppImage
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-x86_64-AppImage-${{ steps.date.outputs.date }}-r${{ github.run_number }}
@@ -121,13 +144,21 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Upload VST3
+      - name: Upload VST3 artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-x86_64-VST3-${{ steps.date.outputs.date }}-r${{ github.run_number }}
           path: ${{ steps.find.outputs.vst3 }}
           retention-days: 30
           if-no-files-found: warn
+
+      - name: Upload release zips artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-zips-x86_64
+          path: zips/
+          retention-days: 7
 
   # ============================================================================
   #  ARM64 — Raspberry Pi 5 / other aarch64 Linux hardware
@@ -137,10 +168,12 @@ jobs:
     runs-on: ubuntu-22.04-arm
 
     steps:
-      - name: Checkout (with submodules)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      # ASIO SDK is a private Windows-only submodule — not needed for Linux builds.
+      - name: Init NeuralAmpModelerCore submodule
+        run: git submodule update --init --recursive ThirdParty/NeuralAmpModelerCore
 
       - name: Set build date
         id: date
@@ -221,7 +254,23 @@ jobs:
 
           mv NeuralStage-aarch64.AppImage "NeuralStage-${{ steps.date.outputs.date }}-aarch64.AppImage"
 
-      - name: Upload Standalone
+      - name: Package artifacts as zips
+        run: |
+          TAG="${{ github.ref_name }}"
+          mkdir -p zips
+
+          EXE="${{ steps.find.outputs.exe }}"
+          zip "zips/NeuralStage-${TAG}-Linux-ARM64-Standalone.zip" "$EXE"
+
+          zip "zips/NeuralStage-${TAG}-Linux-ARM64-AppImage.zip" \
+              "NeuralStage-${{ steps.date.outputs.date }}-aarch64.AppImage"
+
+          VST3="${{ steps.find.outputs.vst3 }}"
+          (cd "$(dirname "$VST3")" && \
+           zip -r "$OLDPWD/zips/NeuralStage-${TAG}-Linux-ARM64-VST3.zip" \
+               "$(basename "$VST3")")
+
+      - name: Upload Standalone artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-ARM64-Standalone-${{ steps.date.outputs.date }}-r${{ github.run_number }}
@@ -229,7 +278,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Upload AppImage
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-ARM64-AppImage-${{ steps.date.outputs.date }}-r${{ github.run_number }}
@@ -237,10 +286,75 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      - name: Upload VST3
+      - name: Upload VST3 artifact
         uses: actions/upload-artifact@v4
         with:
           name: NeuralStage-Linux-ARM64-VST3-${{ steps.date.outputs.date }}-r${{ github.run_number }}
           path: ${{ steps.find.outputs.vst3 }}
           retention-days: 30
           if-no-files-found: warn
+
+      - name: Upload release zips artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-zips-arm64
+          path: zips/
+          retention-days: 7
+
+  # ============================================================================
+  #  Create GitHub Release (tag pushes only)
+  #  Runs after both build jobs finish. Collects the Linux zips and creates
+  #  a draft release so the Windows builds can be added before publishing.
+  # ============================================================================
+  release:
+    name: Create GitHub Release
+    needs: [build-x86_64, build-arm64]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download x86_64 release zips
+        uses: actions/download-artifact@v4
+        with:
+          name: release-zips-x86_64
+          path: release-assets/
+
+      - name: Download ARM64 release zips
+        uses: actions/download-artifact@v4
+        with:
+          name: release-zips-arm64
+          path: release-assets/
+
+      - name: List release assets
+        run: ls -lh release-assets/
+
+      - name: Create draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: release-assets/*.zip
+          body: |
+            ## NeuralStage ${{ github.ref_name }}
+
+            ### Downloads
+
+            | Platform | Format | Link |
+            |---|---|---|
+            | Windows x64 | Installer (.exe) | *(attach manually — see below)* |
+            | Windows x64 | Manual install (.zip) | *(attach manually — see below)* |
+            | Linux x86_64 | AppImage | see assets below |
+            | Linux x86_64 | Standalone | see assets below |
+            | Linux x86_64 | VST3 | see assets below |
+            | Linux ARM64 (Pi) | AppImage | see assets below |
+            | Linux ARM64 (Pi) | Standalone | see assets below |
+            | Linux ARM64 (Pi) | VST3 | see assets below |
+
+            > **Windows builds**: Run `build.ps1` locally, then drag the files from
+            > `Installer/WIN/` into this release page before publishing.
+
+            ---
+            _Full changelog: [CHANGELOG.md](CHANGELOG.md)_

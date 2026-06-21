@@ -13,6 +13,12 @@ Installer/Neural*/
 Installer/NeuralStage.v.*/
 Installer/*.zip
 
+# Pre-built release archives staged locally — published as GitHub Release assets,
+# not committed to the repo.
+Installer/WIN/
+Installer/LINUX/
+Installer/MAC/
+
 # Claude local settings
 .claude/
 
