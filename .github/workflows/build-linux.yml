@@ -340,21 +340,7 @@ jobs:
           body: |
             ## NeuralStage ${{ github.ref_name }}
 
-            ### Downloads
+            See assets below for all platforms. Windows builds are added by the
+            separate Windows CI job — publish the draft once all jobs complete.
 
-            | Platform | Format | Link |
-            |---|---|---|
-            | Windows x64 | Installer (.exe) | *(attach manually — see below)* |
-            | Windows x64 | Manual install (.zip) | *(attach manually — see below)* |
-            | Linux x86_64 | AppImage | see assets below |
-            | Linux x86_64 | Standalone | see assets below |
-            | Linux x86_64 | VST3 | see assets below |
-            | Linux ARM64 (Pi) | AppImage | see assets below |
-            | Linux ARM64 (Pi) | Standalone | see assets below |
-            | Linux ARM64 (Pi) | VST3 | see assets below |
-
-            > **Windows builds**: Run `build.ps1` locally, then drag the files from
-            > `Installer/WIN/` into this release page before publishing.
-
-            ---
             _Full changelog: [CHANGELOG.md](CHANGELOG.md)_
