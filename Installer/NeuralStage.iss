@@ -8,7 +8,6 @@
 ;                        NeuralStage itself as a VST3 plugin for DAWs.
 ;    NeuralStage.clap  → C:\Program Files\Common Files\CLAP\
 ;                        NeuralStage itself as a CLAP plugin for DAWs.
-;    NeuralStage-Manual.pdf → {app}\Docs\
 ;
 ;  The .ico helper file is installed alongside the exe so shortcuts and
 ;  the uninstaller can reference a stable path.
@@ -68,12 +67,11 @@ Source: "{#BinariesDir}\NeuralStage.clap"; DestDir: "{commoncf64}\CLAP"; Flags: 
 ; of the install directory.
 Source: "{#ProjectRoot}\Assets\{#MyAppIconName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; User manual PDF (all screenshots embedded — self-contained)
-Source: "{#ProjectRoot}\Docs\NeuralStage-Manual.pdf"; DestDir: "{app}\Docs"; Flags: ignoreversion
+; Manual is hosted online — no PDF bundled in the installer.
 
 [Icons]
 Name: "{group}\{#MyAppName}";           Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIconName}"; WorkingDir: "{app}"
-Name: "{group}\{#MyAppName} Manual";    Filename: "{app}\Docs\NeuralStage-Manual.pdf"
+Name: "{group}\{#MyAppName} Manual (online)"; Filename: "https://github.com/atij666studio/NeuralStage/blob/main/Docs/NeuralStage-Manual.md"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{commondesktop}\{#MyAppName}";   Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIconName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
